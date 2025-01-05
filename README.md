@@ -1,48 +1,48 @@
-# **Robotics Path Planning Problem**
+# Multi-Robot Path Planning Problem
 
-## **Overview**
+## Overview
+Multi-Robot Path Planning (MRPP) is a key challenge in robotics where multiple robots must navigate through a shared grid environment to reach their respective goals. This problem considers constraints such as avoiding obstacles, preventing robot collisions, and optimizing the movement across a fixed number of time steps.
 
-Path planning is a critical problem in robotics,
-where the objective is to determine a valid sequence of movements for a robot to
-travel from a designated starting point to a goal location within a given
-environment. The problem involves navigating through a grid or map with
-obstacles, ensuring the path is both feasible and optimal. This problem is
-fundamental in robotics, autonomous vehicles, logistics, and other domains
-that require spatial navigation and
-optimization.
+The problem has applications in robotics, autonomous vehicle coordination, warehouse management, and game AI.
 
 ---
 
-## **Problem Statement**
+## Problem Statement
+Given a 2D grid environment with a fixed number of robots:
 
-Given a two-dimensional grid environment:
+1. Each **robot** has:
+   - A **start location** (its initial position on the grid).
+   - A **goal location** (its target position on the grid).
 
-1. The grid is composed of **cells**, where each cell can be either:
-   - **Free**: A cell that the robot can traverse.
-   - **Blocked**: A cell that contains an obstacle, which the robot must avoid.
-2. The robot is placed at a **start location** on the grid.
-3. The robot must navigate to a designated **goal location**.
+2. The **grid** is represented as a matrix where:
+   - `0` indicates a **free cell** that robots can traverse.
+   - `1` indicates a **blocked cell** representing an obstacle.
 
-The challenge is to compute a **valid path** from the start location to the
-goal location that satisfies the following
-constraints:
+3. Movements:
+   - Robots can move up, down, left, right, or remain stationary in each time step.
+   - Each movement takes **1 unit of time**.
 
-1. The robot cannot pass through cells marked as obstacles.
-2. The robot can only move to adjacent cells (up, down, left, right, or
-   diagonally, depending on the configuration).
-3. The path should avoid revisiting cells unless necessary.
+4. Constraints:
+   - **Obstacle Avoidance**: Robots cannot enter cells with obstacles.
+   - **Collision Avoidance**:
+     - Robots cannot occupy the same cell at the same time.
+     - Robots cannot cross paths, i.e., exchange positions in a single time step.
+   - **Fixed Time Horizon**: All robots must reach their goal within a fixed number of time steps \(T\).
+
+5. Output:
+   - A sequence of movements for each robot over \(T\) time steps that satisfies the constraints.
+   - If no valid solution exists, indicate the problem is unsolvable.
 
 ---
 
-## **Inputs**
-
-1. **Grid Map**: A representation of the environment as a matrix where:
-
-   - `0` indicates a free cell.
-   - `1` indicates a blocked cell (obstacle).  
-     Example:
-
-   ```text
+## Input Specification
+1. **Grid**:
+   A matrix of size \(M \times N\) where:
+   - `0`: Free cell.
+   - `1`: Blocked cell.
+   
+   Example:
+   ```
    0 0 1 0 0
    0 1 1 0 0
    0 0 0 1 0
@@ -50,105 +50,80 @@ constraints:
    0 0 0 0 0
    ```
 
-2. **Start Location**: The initial coordinates of the robot on the grid, e.g.,
-   `(1, 1)`.
-3. **Goal Location**: The destination coordinates the robot must reach, e.g.,
-   `(5, 5)`.
+2. **Robots**:
+   - Start and goal positions for each robot.
+   - Example: 
+     ```python
+     robots = [
+         {"start": (0, 0), "goal": (4, 4)},
+         {"start": (1, 1), "goal": (3, 3)}
+     ]
+     ```
+
+3. **Time Horizon**:
+   - Maximum number of time steps \(T\) within which all robots must reach their goals.
+   - Example: \(T = 10\).
 
 ---
 
-## **Objectives**
+## Output Specification
+The solution should provide:
+1. **Movements**:
+   - A sequence of movements for each robot at every time step.
+   - Example:
+     ```
+     Robot 1: [(0,0), (0,1), (1,1), (2,2), (3,3), (4,4)]
+     Robot 2: [(1,1), (1,2), (2,2), (3,3), (3,3), (3,3)]
+     ```
 
-1. **Feasibility**:
+2. **Visualization** (Optional):
+   - A time-lapse representation of the grid at each time step showing robot movements.
 
-   - Ensure a valid path exists from the start to the goal.
-   - If no valid path exists, indicate that the goal is unreachable.
-
-2. **Optimality (optional)**:
-   - Minimize the total distance traveled (shortest path).
-   - Alternatively, optimize based on additional criteria like energy
-     consumption or time.
-
----
-
-## **Constraints**
-
-1. **Obstacle Avoidance**: The robot must never enter a blocked cell.
-2. **Grid Boundaries**: The robot must stay within the bounds of the grid.
-3. **Sequential Movement**: The robot can only move to adjacent cells in a single
-   time step.
-4. **Dynamic Environment (Optional)**: If the obstacles or free cells can
-   change over time, the solution must adapt dynamically.
+3. **Feasibility**:
+   - If no valid solution exists, output: "No valid solution exists."
 
 ---
 
-## **Challenges**
+## Challenges
+1. **Collision Avoidance**:
+   - Preventing two robots from occupying the same cell or crossing paths at the same time step.
 
-1. **Complex Environments**:
+2. **Optimization**:
+   - Minimize the total time or distance traveled by all robots.
 
-   - Dense grids with many obstacles can make finding a valid path
-     computationally intensive.
-   - Narrow passages or mazes require precise pathfinding.
+3. **Scalability**:
+   - Managing a large number of robots in dense or complex environments.
 
-2. **Unreachable Goals**:
-
-   - If the start and goal are separated by completely blocked areas, no valid
-     path exists.
-   - The algorithm must detect and report such cases efficiently.
-
-3. **Multiple Objectives**:
-
-   - Balancing feasibility with optimality, especially in dynamic environments, can
-     complicate the problem.
-
-4. **Scaling**:
-   - Larger grids or higher-dimensional spaces significantly increase
-     computational complexity.
+4. **Dynamic Coordination**:
+   - Allowing robots to remain stationary when necessary to avoid conflicts.
 
 ---
 
-## **Applications**
-
-1. **Autonomous Robots**: Navigation for delivery robots, drones, or vacuum cleaners.
-2. **Autonomous Vehicles**: Route planning for self-driving cars in environments
-   with static obstacles.
-3. **Warehouse Management**: Pathfinding for robots in warehouses with shelves
-   as obstacles.
-4. **Game AI**: Controlling characters or units to navigate maps efficiently.
+## Applications
+- **Warehouse Automation**: Coordinating robots in storage and retrieval systems.
+- **Autonomous Vehicles**: Traffic management for self-driving cars.
+- **Game AI**: Coordinating units in strategy games.
 
 ---
 
-## **Expected Output**
-
-The output of the path-planning problem should be:
-
-1. A **valid path** represented as a sequence of grid coordinates, e.g., `[(1,1),
-(1,2), (2,2), ..., (5,5)]`.
-2. A **visual representation** of the grid with the path marked, where:
-
-   - `S` represents the start location.
-   - `G` represents the goal location.
-   - `*` represents the path.  
-     Example:
-
-   ```text
-   S * 1 0 0
-   0 * 1 0 0
-   0 * * 1 0
-   1 1 * 1 0
-   0 0 * * G
-   ```
-
-3. If no path exists, the output should indicate that the goal is unreachable.
+## Goals
+1. Formulate the problem as a **SAT problem** using logical constraints.
+2. Implement a solution using a **SAT solver** (e.g., Gophersat).
+3. Ensure the following:
+   - Each robot reaches its goal without collisions.
+   - All constraints are satisfied.
 
 ---
 
-## **Goals of the Project**
+## Implementation Details
+The solution will involve:
+1. **SAT Encoding**:
+   - Define variables to represent each robot's position at each time step.
+   - Encode constraints for valid movements, collision avoidance, and goal satisfaction.
 
-This project aims to:
+2. **SAT Solver**:
+   - Use Gophersat to find a feasible solution.
 
-1. Formulate the robotics path-planning problem in a structured and
-   computationally efficient manner.
-2. Provide a robust framework to validate the feasibility of a path for a given grid.
-3. Serve as a foundation for implementing advanced algorithms for path planning
-   optimization, and real-world applications.
+3. **Validation**:
+   - Verify that the output meets the requirements.
+   - Test with multiple grid and robot configurations.
