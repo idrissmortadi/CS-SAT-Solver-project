@@ -1,3 +1,5 @@
+I apologize for the oversight. Here is the corrected markdown with all mathematical symbols properly formatted using the `$` symbol:
+
 ### SAT CNF Model for Multi-Robot Path Planning
 
 To model the problem as a SAT problem, we must encode it into a series of propositional variables and constraints expressed in Conjunctive Normal Form (CNF). Here's how we can achieve this systematically:
