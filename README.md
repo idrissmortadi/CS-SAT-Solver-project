@@ -1,129 +1,80 @@
-# Multi-Robot Path Planning Problem
+# Robot Path Planning in a Warehouse
 
-## Overview
-Multi-Robot Path Planning (MRPP) is a key challenge in robotics where multiple robots must navigate through a shared grid environment to reach their respective goals. This problem considers constraints such as avoiding obstacles, preventing robot collisions, and optimizing the movement across a fixed number of time steps.
+## Introduction
+Efficient path planning is a critical challenge in robotics, especially in warehouse environments where multiple robots are tasked with transporting goods from one location to another. The primary objective is to ensure that robots can navigate the warehouse grid effectively, avoiding collisions with obstacles and each other, while reaching their designated destinations in minimal time.
 
-The problem has applications in robotics, autonomous vehicle coordination, warehouse management, and game AI.
+This document outlines a robust approach to multi-robot path planning, formulated as a Satisfiability (SAT) problem, enabling efficient computation of collision-free paths for a set of robots in a fixed grid environment.
 
----
+## Problem Formulation
 
-## Problem Statement
-Given a 2D grid environment with a fixed number of robots:
+### Parameters
+- **Grid Dimensions:** The warehouse is represented as a two-dimensional grid of size $ n \times m $.
+- **Robots:** A set of robots $ R $, each with a unique start position $ (x_{\text{start}_r}, y_{\text{start}_r}) $ and goal position $ (x_{\text{goal}_r}, y_{\text{goal}_r}) $.
+- **Time Horizon:** A fixed maximum time $ T $, representing the maximum number of time steps allowed for the robots to reach their destinations.
 
-1. Each **robot** has:
-   - A **start location** (its initial position on the grid).
-   - A **goal location** (its target position on the grid).
+### Variables
+- **Robot Positions:** $ P(r, x, y, t) $: A Boolean variable that is true if robot $ r $ is at position $ (x, y) $ at time $ t $.
+- **Obstacles:** $ O(x, y) $: A Boolean variable that is true if an obstacle is present in the coordinates  $ (x, y) $.
+### Constraints
+1. **Movement Restricted to Free Cells:**
+   Robots can only move to cells that are not obstacles.
+   $$
+   \forall x, y \in O, \forall r \in R, \forall t \in [0, T]: O(x, y) \implies \neg P(r, x, y, t)
+   $$
 
-2. The **grid** is represented as a matrix where:
-   - `0` indicates a **free cell** that robots can traverse.
-   - `1` indicates a **blocked cell** representing an obstacle.
+2. **Movement to Adjacent Cells Only:**
+   Robots can only move to adjacent cells or remain stationary at each time step.
+   $$
+   \forall r \in R, \forall x, y, t: P(r, x, y, t) \implies \bigvee_{(\Delta x, \Delta y) \in M} P\big(r, \text{clamp}(x+\Delta x, 0, n-1), \text{clamp}(y+\Delta y, 0, m-1), \text{clamp}(t+1, 0, T)\big)
+   $$
+   Here, $ M = \{(0, 1), (1, 0), (0, 0), (-1, 0), (0, -1)\} $ represents valid movements (up, down, left, right, or staying stationary).
 
-3. Movements:
-   - Robots can move up, down, left, right, or remain stationary in each time step.
-   - Each movement takes **1 unit of time**.
+3. **Collision Avoidance:**
+   Two robots cannot occupy the same cell at the same time.
+   $$
+   \forall r, r' \in R, r \neq r', \forall x, y, t: P(r, x, y, t) \implies \neg P(r', x, y, t)
+   $$
 
-4. Constraints:
-   - **Obstacle Avoidance**: Robots cannot enter cells with obstacles.
-   - **Collision Avoidance**:
-     - Robots cannot occupy the same cell at the same time.
-     - Robots cannot cross paths, i.e., exchange positions in a single time step.
-   - **Fixed Time Horizon**: All robots must reach their goal within a fixed number of time steps \(T\).
+4. **Position Switching Prohibition:**
+   Two robots cannot swap positions between consecutive time steps.
+   $$
+   \forall r, r' \in R, r \neq r', \forall x, y, t, \forall (\Delta x, \Delta y) \in M \setminus \{(0, 0)\}:
+   P(r, x, y, t) \wedge P(r', x+\Delta x, y+\Delta y, t) \implies \neg \big(P(r, x+\Delta x, y+\Delta y, t+1) \wedge P(r', x, y, t+1)\big)
+   $$
 
-5. Output:
-   - A sequence of movements for each robot over \(T\) time steps that satisfies the constraints.
-   - If no valid solution exists, indicate the problem is unsolvable.
+### Objective
+The goal is to compute a valid set of paths for all robots such that:
+- All robots reach their designated goals within the time horizon $ T $.
+- All constraints are satisfied.
+- (Optional) The total path length or time taken is minimized.
 
----
+## Proposed Formulas
+Below is a detailed breakdown of the formulas used in the SAT problem formulation:
 
-## Input Specification
-1. **Grid**:
-   A matrix of size \(M \times N\) where:
-   - `0`: Free cell.
-   - `1`: Blocked cell.
-   
-   Example:
-   ```
-   0 0 1 0 0
-   0 1 1 0 0
-   0 0 0 1 0
-   1 1 0 1 0
-   0 0 0 0 0
-   ```
+1. **Obstacle Avoidance:**
+   Ensures that no robot can occupy a cell marked as an obstacle.
+   $$
+   \forall x, y \in O, \forall r \in R, \forall t \in [0, T]: O(x, y) \implies \neg P(r, x, y, t)
+   $$
 
-2. **Robots**:
-   - Start and goal positions for each robot.
-   - Example: 
-     ```python
-     robots = [
-         {"start": (0, 0), "goal": (4, 4)},
-         {"start": (1, 1), "goal": (3, 3)}
-     ]
-     ```
+2. **Adjacency Constraint:**
+   Guarantees that robots move only to adjacent cells or remain stationary.
+   $$
+   \forall r \in R, \forall x, y, t: P(r, x, y, t) \implies \bigvee_{(\Delta x, \Delta y) \in M} P\big(r, \text{clamp}(x+\Delta x, 0, n-1), \text{clamp}(y+\Delta y, 0, m-1), \text{clamp}(t+1, 0, T)\big)
+   $$
 
-3. **Time Horizon**:
-   - Maximum number of time steps \(T\) within which all robots must reach their goals.
-   - Example: \(T = 10\).
+3. **Collision Avoidance:**
+   Prevents two robots from being in the same cell at the same time.
+   $$
+   \forall r, r' \in R, r \neq r', \forall x, y, t: P(r, x, y, t) \implies \neg P(r', x, y, t)
+   $$
 
----
+4. **Position Switching Prohibition:**
+   Ensures that two robots cannot exchange positions between consecutive time steps.
+   $$
+   \forall r, r' \in R, r \neq r', \forall x, y, t, \forall (\Delta x, \Delta y) \in M \setminus \{(0, 0)\}:
+   P(r, x, y, t) \wedge P(r', x+\Delta x, y+\Delta y, t) \implies \neg \big(P(r, x+\Delta x, y+\Delta y, t+1) \wedge P(r', x, y, t+1)\big)
+   $$
 
-## Output Specification
-The solution should provide:
-1. **Movements**:
-   - A sequence of movements for each robot at every time step.
-   - Example:
-     ```
-     Robot 1: [(0,0), (0,1), (1,1), (2,2), (3,3), (4,4)]
-     Robot 2: [(1,1), (1,2), (2,2), (3,3), (3,3), (3,3)]
-     ```
+These formulas ensure safe and efficient path planning for multiple robots navigating the warehouse grid. By encoding the problem as a SAT problem, it can be solved using SAT solvers to determine a feasible set of paths that satisfy all constraints.
 
-2. **Visualization** (Optional):
-   - A time-lapse representation of the grid at each time step showing robot movements.
-
-3. **Feasibility**:
-   - If no valid solution exists, output: "No valid solution exists."
-
----
-
-## Challenges
-1. **Collision Avoidance**:
-   - Preventing two robots from occupying the same cell or crossing paths at the same time step.
-
-2. **Optimization**:
-   - Minimize the total time or distance traveled by all robots.
-
-3. **Scalability**:
-   - Managing a large number of robots in dense or complex environments.
-
-4. **Dynamic Coordination**:
-   - Allowing robots to remain stationary when necessary to avoid conflicts.
-
----
-
-## Applications
-- **Warehouse Automation**: Coordinating robots in storage and retrieval systems.
-- **Autonomous Vehicles**: Traffic management for self-driving cars.
-- **Game AI**: Coordinating units in strategy games.
-
----
-
-## Goals
-1. Formulate the problem as a **SAT problem** using logical constraints.
-2. Implement a solution using a **SAT solver** (e.g., Gophersat).
-3. Ensure the following:
-   - Each robot reaches its goal without collisions.
-   - All constraints are satisfied.
-
----
-
-## Implementation Details
-The solution will involve:
-1. **SAT Encoding**:
-   - Define variables to represent each robot's position at each time step.
-   - Encode constraints for valid movements, collision avoidance, and goal satisfaction.
-
-2. **SAT Solver**:
-   - Use Gophersat to find a feasible solution.
-
-3. **Validation**:
-   - Verify that the output meets the requirements.
-   - Test with multiple grid and robot configurations.
