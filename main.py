@@ -374,7 +374,6 @@ def visualize_solution_grid(
     robots: List[Robot],
     obstacles: Set[Position],
     paths: Dict[int, List[Position]],
-    time_horizon: int,
 ):
     """Visualizes the solution in a grid of plots, one per robot."""
     sns.set_theme(style="whitegrid", font_scale=1.2)
@@ -442,6 +441,16 @@ def visualize_solution_grid(
                 label="Start",
             )
         )
+        ax.text(
+            robot.start.x + 0.5,
+            robot.start.y + 0.5,
+            "S",
+            color="black",
+            fontsize=9,
+            weight="bold",
+            ha="center",  # Horizontal alignment
+            va="center",  # Vertical alignment
+        )
         ax.add_patch(
             patches.Circle(
                 (robot.goal.x + 0.5, robot.goal.y + 0.5),
@@ -452,6 +461,16 @@ def visualize_solution_grid(
                 label="Goal",
             )
         )
+        ax.text(
+            robot.goal.x + 0.5,
+            robot.goal.y + 0.5,
+            "G",
+            color="black",
+            fontsize=9,
+            weight="bold",
+            ha="center",  # Horizontal alignment
+            va="center",  # Vertical alignment
+        )
 
         # Title and axis settings
         ax.set_xlim(0, width)
@@ -460,7 +479,7 @@ def visualize_solution_grid(
         ax.set_xticks(range(width))
         ax.set_yticks(range(height))
         ax.set_title(f"Robot {robot_id} Path", fontsize=14)
-        ax.legend(loc="upper left")
+        # ax.legend(loc="upper left")
 
     # Hide any unused axes
     for j in range(num_robots, len(axes)):
@@ -494,18 +513,18 @@ if __name__ == "__main__":
         # Position(4, 2),
         Position(4, 3),
         Position(4, 4),
-        # Position(4, 5),
+        Position(4, 5),
         Position(4, 6),
         Position(4, 7),
     }
 
     # Time horizon
-    time_horizon = 30
+    time_horizon = 16
 
     # Solve the problem
     paths = solve_warehouse_problem(width, height, robots, obstacles, time_horizon)
 
     if paths:
-        visualize_solution_grid(width, height, robots, obstacles, paths, time_horizon)
+        visualize_solution_grid(width, height, robots, obstacles, paths)
     else:
         print("No solution found.")
