@@ -1,0 +1,132 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{float}
+
+\title{\textbf{Résolution de problèmes à l'aide d'un solveur SAT}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+La résolution de problèmes complexes à l'aide de solveurs SAT (Satisfiability) repose sur la transformation des contraintes en formules logiques exprimées sous forme de clauses. Ce rapport détaille plusieurs exemples pratiques illustrant cette méthode, notamment l'analyse d'une licorne mythique, le coloriage de graphes, la résolution de Sudoku et la planification dans des systèmes dynamiques comme le Sokoban.
+
+\section{Eléments de corrections pour les séances 1 et 2}
+
+\subsection{La licorne}
+
+\subsubsection{Modélisation}
+Si la licorne est mythique, alors elle est immortelle ; si elle n'est pas mythique, c'est un mammifère mortel. Si elle est un mammifère ou immortelle, voire les deux, elle possède une corne. Une licorne est magique si elle possède une corne.
+
+Les variables utilisées sont :
+\begin{itemize}
+    \item 1 : Mythique ($M$)
+    \item 2 : Mortelle ($T$)
+    \item 3 : Mammifère ($A$)
+    \item 4 : Corne ($C$)
+    \item 5 : Magique ($G$)
+\end{itemize}
+
+La base de connaissances (KB) est traduite en clauses DIMACS :
+\begin{verbatim}
+-1 -2 0
+1 2 0
+1 3 0
+-3 4 0
+2 4 0
+-4 5 0
+\end{verbatim}
+
+\subsubsection{Validation de la cohérence}
+L'application d'un solveur SAT montre que la KB est satisfiable. Il existe donc un modèle possible pour un monde où les licornes existent.
+
+\subsubsection{Questions}
+\begin{enumerate}
+    \item \textbf{La licorne a-t-elle une corne ?}
+
+    En ajoutant la clause $-4 \ 0$, le solveur retourne \texttt{UNSAT}. Par conséquent, la licorne doit avoir une corne.
+
+    \item \textbf{La licorne est-elle mythique ?}
+
+    La résolution de $KB \cup \{1 \ 0\}$ et $KB \cup \{-1 \ 0\}$ montre que les deux formules sont satisfiables. Nous ne pouvons donc pas conclure si la licorne est mythique ou non.
+\end{enumerate}
+
+\subsection{Coloriage d'un graphe}
+
+\subsubsection{Définition du problème}
+On considère le graphe $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ où :
+\begin{itemize}
+    \item $\mathcal{V} = \{A, B, C, D\}$
+    \item $\mathcal{E} = \{ \{A, B\}, \{A, C\}, \{B, C\}, \{B, D\}, \{C, D\} \}$
+\end{itemize}
+
+Les couleurs sont $K = \{r, v, b\}$. On utilise des variables propositionnelles $x_{v,k}$ pour indiquer si un sommet $v$ a la couleur $k$. 
+
+\subsubsection{Contraintes}
+\begin{itemize}
+    \item Chaque sommet $v \in \mathcal{V}$ a au moins une couleur : $\bigvee_{k \in K} x_{v,k}$
+    \item Chaque sommet a au plus une couleur : $\neg x_{v,k} \lor \neg x_{v,k'}$ pour $k \ne k'$
+    \item Deux sommets reliés par une arête ont des couleurs différentes : $\neg x_{v,k} \lor \neg x_{v',k}$
+\end{itemize}
+
+\subsubsection{Implémentation en Python}
+\begin{verbatim}
+import subprocess
+
+def exec_sat_solver(filename, cmd="gophersat", encoding="utf8"):
+    result = subprocess.run([cmd, filename], stdout=subprocess.PIPE, check=True, encoding=encoding)
+    string = str(result.stdout)
+    lines = string.splitlines()
+
+    if lines[1] != "s SATISFIABLE":
+        return False, {}
+
+    model = lines[2][2:].split()
+
+    return True, { i2v[abs(int(v))] : int(v) > 0 for v in model if int(v) != 0}
+\end{verbatim}
+
+\section{Sudoku}
+
+\subsection{Problème}
+La résolution du Sudoku peut être vue comme un problème de coloriage de graphe. Les cellules représentent les sommets, et les contraintes sur les lignes, colonnes et blocs 3x3 définissent les arêtes. Les couleurs représentent les valeurs possibles (1 à 9).
+
+\subsection{Clauses DIMACS}
+\begin{itemize}
+    \item Chaque cellule contient un chiffre.
+    \item Chaque chiffre apparaît au plus une fois par ligne, colonne et bloc.
+\end{itemize}
+
+L'initialisation du problème injecte les informations de la grille sous forme de clauses unaires.
+
+\section{Planification à horizon fini : Sokoban simplifié}
+
+\subsection{Variables}
+\begin{itemize}
+    \item $w_{c,t}$ : Le personnage est sur la case $c$ à l'instant $t$.
+    \item $b_{c,t}$ : Une caisse est sur la case $c$ à l'instant $t$.
+    \item $do_{x,t}$ : L'action $x$ est réalisée à l'instant $t$.
+\end{itemize}
+
+\subsection{Formulation des contraintes}
+\begin{enumerate}
+    \item \textbf{État initial} : Décrit la position initiale des caisses et du personnage.
+    \item \textbf{État final} : Décrit la position cible des caisses.
+    \item \textbf{Transitions} : Exprime les effets des actions sur l'état du monde.
+\end{enumerate}
+
+\subsection{Clauses DIMACS}
+Les contraintes sont traduites sous forme de clauses et générées dynamiquement en fonction de l'horizon $T$. 
+
+\section{Conclusion}
+Ce rapport illustre l'utilisation de solveurs SAT pour résoudre divers problèmes combinatoires, en transformant des contraintes complexes en formules logiques sous forme de clauses DIMACS. Cette méthode montre son efficacité et sa généralité, que ce soit pour modéliser des problèmes théoriques ou pour des applications pratiques comme le Sudoku ou Sokoban.
+
+\end{document}
