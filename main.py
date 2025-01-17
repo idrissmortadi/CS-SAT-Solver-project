@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Set
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib import animation
 from pysat.formula import CNF
 from pysat.solvers import Glucose3
 
@@ -368,6 +369,109 @@ def test_simple_case():
             print(f"Error: {e}")
 
 
+def animate_solution(
+    width: int,
+    height: int,
+    robots: List[Robot],
+    obstacles: Set[Position],
+    paths: Dict[int, List[Position]],
+    filename="robot_animation.gif",
+):
+    """Animates all robots moving along their paths and saves as GIF."""
+    sns.set_theme(style="whitegrid")
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    max_time = max(len(path) for path in paths.values())
+    colors = sns.color_palette("husl", len(robots))
+
+    def update(t):
+        ax.clear()
+
+        # Draw grid and obstacles
+        for x in range(width):
+            for y in range(height):
+                ax.add_patch(
+                    patches.Rectangle(
+                        (x, y), 1, 1, fill=False, edgecolor="gray", lw=0.5
+                    )
+                )
+
+        for obs in obstacles:
+            ax.add_patch(patches.Rectangle((obs.x, obs.y), 1, 1, color="black"))
+
+        # Draw paths and robots up to current time t
+        for i, robot in enumerate(robots):
+            path = paths[robot.id]
+            current_t = min(t, len(path) - 1)
+            robot_color = colors[i]
+
+            # Draw path history and timesteps
+            for j in range(current_t):
+                pos = path[j]
+                next_pos = path[j + 1]
+                ax.arrow(
+                    pos.x + 0.5,
+                    pos.y + 0.5,
+                    next_pos.x - pos.x,
+                    next_pos.y - pos.y,
+                    head_width=0.2,
+                    head_length=0.2,
+                    fc=robot_color,
+                    ec=robot_color,
+                    alpha=0.3,
+                )
+                ax.text(pos.x + 0.1, pos.y + 0.1, str(j), color=robot_color, fontsize=8)
+
+            # Draw current robot position
+            current_pos = path[current_t]
+            ax.add_patch(
+                patches.Circle(
+                    (current_pos.x + 0.5, current_pos.y + 0.5), 0.3, color=robot_color
+                )
+            )
+            ax.text(
+                current_pos.x + 0.5,
+                current_pos.y + 0.5,
+                str(robot.id),
+                ha="center",
+                va="center",
+                color="white",
+            )
+
+            # Mark start and goal
+            ax.add_patch(
+                patches.Circle(
+                    (robot.start.x + 0.5, robot.start.y + 0.5),
+                    0.2,
+                    color=robot_color,
+                    alpha=0.5,
+                )
+            )
+            ax.add_patch(
+                patches.Circle(
+                    (robot.goal.x + 0.5, robot.goal.y + 0.5),
+                    0.2,
+                    color=robot_color,
+                    alpha=0.5,
+                )
+            )
+
+        ax.set_xlim(0, width)
+        ax.set_ylim(0, height)
+        ax.set_aspect("equal")
+        ax.set_title(f"Time step: {t}")
+
+    anim = animation.FuncAnimation(
+        fig,
+        update,  # type: ignore
+        frames=max_time + 1,
+        interval=500,
+        repeat=False,
+    )
+    anim.save(filename, writer="pillow")
+    plt.close()
+
+
 def visualize_solution_grid(
     width: int,
     height: int,
@@ -500,7 +604,7 @@ if __name__ == "__main__":
     robots = [
         Robot(1, Position(0, 0), Position(7, 7)),
         Robot(2, Position(7, 0), Position(0, 7)),
-        # Robot(3, Position(0, 7), Position(7, 0)),
+        Robot(3, Position(0, 7), Position(7, 0)),
         # Robot(4, Position(7, 7), Position(0, 0)),
         # Robot(5, Position(3, 3), Position(5, 5)),
         # Robot(6, Position(5, 5), Position(3, 3)),
@@ -525,6 +629,7 @@ if __name__ == "__main__":
     paths = solve_warehouse_problem(width, height, robots, obstacles, time_horizon)
 
     if paths:
-        visualize_solution_grid(width, height, robots, obstacles, paths)
+        # visualize_solution_grid(width, height, robots, obstacles, paths)
+        animate_solution(width, height, robots, obstacles, paths)
     else:
         print("No solution found.")
