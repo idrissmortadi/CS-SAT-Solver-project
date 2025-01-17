@@ -1,0 +1,11 @@
+name: pysat-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - matplotlib
+  - seaborn
+  - pip
+  - pip:
+    - python-sat[aiger,approxmc,cryptosat,pblib]
