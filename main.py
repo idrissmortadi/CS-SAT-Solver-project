@@ -377,7 +377,7 @@ def visualize_solution_grid(
     time_horizon: int,
 ):
     """Visualizes the solution in a grid of plots, one per robot."""
-    sns.set(style="whitegrid", font_scale=1.2)
+    sns.set_theme(style="whitegrid", font_scale=1.2)
 
     num_robots = len(robots)
     cols = 3  # Set the number of columns in the grid

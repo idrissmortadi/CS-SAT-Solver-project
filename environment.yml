@@ -7,5 +7,6 @@ dependencies:
   - matplotlib
   - seaborn
   - pip
+  - pytest
   - pip:
     - python-sat[aiger,approxmc,cryptosat,pblib]
