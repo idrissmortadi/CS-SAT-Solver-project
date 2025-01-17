@@ -1,103 +1,105 @@
-### SAT CNF Model for Multi-Robot Path Planning
-
-To model the problem as a SAT problem, we must encode it into a series of propositional variables and constraints expressed in Conjunctive Normal Form (CNF). Here's how we can achieve this systematically:
+To express the adjusted multi-robot path-planning problem in **CNF (Conjunctive Normal Form)**, we need to translate the constraints into boolean formulas that can be solved using SAT solvers. Let’s proceed step by step with the constraints and their encoding.
 
 ---
 
-### Key Variables and Encodings
+### **Definitions**
 
-1. **Grid Representation**:
-   Let $G(x, y, t)$ be a boolean variable that is **true** if a robot is at position $(x, y)$ at time $t$.
+1. **Variables**:  
+   - \( P(r, x, y, t) \): True if robot \(r\) is at position \((x, y)\) at time \(t\), false otherwise.  
+   - \( O(x, y) \): True if cell \((x, y)\) is an obstacle, false otherwise.  
+   - \( dx, dy \): Displacement values from the movement set \( M = \{(0, 1), (1, 0), (0, 0), (-1, 0), (0, -1)\} \).
 
-2. **Movement Actions**:
-   For each robot $r$, define variables $M(r, dx, dy, t)$, where $(dx, dy)$ represents a movement direction at time $t$:
-   - $dx, dy \in \{-1, 0, 1\}$ (up, down, left, right, diagonal, or stationary).
-   - $M(r, dx, dy, t)$ is **true** if robot $r$ moves by $(dx, dy)$ at time $t$.
-
-3. **Collision Avoidance**:
-   - No two robots can occupy the same cell at the same time.
-
-4. **Start and Goal Conditions**:
-   - Encode the initial position for each robot at $t = 0$.
-   - Encode the goal condition for each robot at $t = T$.
-
-5. **Time Horizon**:
-   - $T$ is the maximum number of steps available to all robots.
+2. **Input Parameters**:  
+   - \( n, m \): Dimensions of the grid.  
+   - \( T \): Maximum time steps.  
+   - \( R \): Set of robots.  
+   - Starting positions: \( (x_{\text{start}, r}, y_{\text{start}, r}) \) for each robot \(r\).  
+   - Goal positions: \( (x_{\text{goal}, r}, y_{\text{goal}, r}) \) for each robot \(r\).
 
 ---
 
-### Constraints
+### **Constraints in CNF Format**
 
-#### 1. **Initial Position**
-Each robot $r$ starts at its specified initial position at $t = 0$:
-\[ G_r(x_{\text{start}}, y_{\text{start}}, 0) \]
-For each robot $r$, set $G_r(x_{\text{start}}, y_{\text{start}}, 0)$ to **true** and all other positions to **false** at $t = 0$.
-
----
-
-#### 2. **Goal Condition**
-Each robot $r$ must reach its specified goal position by $t = T$:
-\[ G_r(x_{\text{goal}}, y_{\text{goal}}, T) \]
-Encode $G_r(x_{\text{goal}}, y_{\text{goal}}, T)$ to **true** and ensure all other positions are **false** at $t = T$.
-
----
-
-#### 3. **Robot Movement**
-At each time step $t$, a robot $r$ must:
-   - Move to one of its neighboring cells or remain stationary.
-   - Move only to free cells.
-   - Satisfy grid boundaries.
-
-**Encoding:**
-- Transition constraints:
-   If $G_r(x, y, t)$ is true, then the robot moves to one of its valid neighboring cells or stays stationary:
-   \[
-   G_r(x, y, t) \implies \bigvee_{(dx, dy)} M_r(dx, dy, t)
-   \]
-   If $M_r(dx, dy, t)$ is true, then the robot is in the destination cell $(x + dx, y + dy)$ at $t + 1$:
-   \[
-   M_r(dx, dy, t) \implies G_r(x + dx, y + dy, t + 1)
-   \]
-
-- Obstacles:
-   Robots cannot enter obstacle cells. For all $t$:
-   \[
-   G_r(x, y, t) \implies \text{(free cell at } (x, y) \text{)}
-   \]
-
----
-
-#### 4. **Collision Avoidance**
-Robots cannot occupy the same cell at the same time $t$:
-For each pair of robots $r_1$ and $r_2$:
+#### 1. **Move Only to Free Cells**  
+Robots cannot occupy obstacle cells:  
 \[
-G_{r_1}(x, y, t) \implies \neg G_{r_2}(x, y, t)
+O(x, y) \implies \neg P(r, x, y, t)
+\]  
+CNF Form:
+\[
+\neg O(x, y) \vee \neg P(r, x, y, t) \quad \forall r \in R, \forall x, y, \forall t \in [0, T]
 \]
 
 ---
 
-#### 5. **No Path Crossing**
-Robots cannot swap positions in a single time step. If $r_1$ moves from $(x_1, y_1)$ to $(x_2, y_2)$, then $r_2$ cannot move from $(x_2, y_2)$ to $(x_1, y_1)$:
+#### 2. **Move to Adjacent Cells Only**  
+A robot at position \((x, y)\) at time \(t\) must move to an adjacent cell or stay in place at \(t+1\):  
 \[
-M_{r_1}(dx, dy, t) \wedge M_{r_2}(-dx, -dy, t) \implies \text{false}
+P(r, x, y, t) \implies \bigvee_{(dx, dy) \in M} P(r, x + dx, y + dy, t + 1)
+\]  
+This ensures a robot moves within the grid boundaries. Incorporate clamping for boundary conditions:  
+\[
+P(r, x, y, t) \implies \bigvee_{(dx, dy) \in M} P(r, \text{clamp}(x + dx, 0, n-1), \text{clamp}(y + dy, 0, m-1), t + 1)
+\]  
+
+CNF Form (for each robot \(r\), position \((x, y)\), and time \(t\)):  
+\[
+\neg P(r, x, y, t) \vee \bigvee_{(dx, dy) \in M} P(r, \text{clamp}(x + dx, 0, n-1), \text{clamp}(y + dy, 0, m-1), t + 1)
+\]  
+
+---
+
+#### 3. **No Two Robots in the Same Cell at the Same Time**  
+If two different robots \(r\) and \(r'\) occupy the same cell \((x, y)\) at the same time \(t\), it's a conflict:  
+\[
+P(r, x, y, t) \wedge P(r', x, y, t) \implies \text{false}
+\]  
+CNF Form:  
+\[
+\neg P(r, x, y, t) \vee \neg P(r', x, y, t) \quad \forall r, r' \in R, r \neq r', \forall x, y, \forall t \in [0, T]
 \]
 
 ---
 
-#### 6. **Time Progression**
-Every robot must either move or stay stationary at each time step until $T$.
-
-**Encoding:**
-For each robot $r$:
+#### 4. **No Switching Positions**  
+Robots \(r\) and \(r'\) cannot swap positions in one time step:  
 \[
-\bigvee_{(dx, dy)} M_r(dx, dy, t)
+P(r, x, y, t) \wedge P(r', x+dx, y+dy, t) \implies \neg \big( P(r, x+dx, y+dy, t+1) \wedge P(r', x, y, t+1) \big)
+\]  
+CNF Form (expanded for \(r, r'\), \(x, y\), and \((dx, dy) \in M \setminus \{(0, 0)\}\)):  
+\[
+\neg P(r, x, y, t) \vee \neg P(r', x+dx, y+dy, t) \vee \neg P(r, x+dx, y+dy, t+1) \vee \neg P(r', x, y, t+1)
 \]
 
 ---
 
-### Final Encoding
+### **Complete CNF for the Problem**
 
-Combine all the constraints to form the SAT problem:
-- Encode grid boundaries.
-- Encode robot start and goal conditions.
-- Encode movement and collision constraints.
+1. **Free Cells**:  
+   \[
+   \neg O(x, y) \vee \neg P(r, x, y, t)
+   \]
+
+2. **Movement to Adjacent Cells**:  
+   \[
+   \neg P(r, x, y, t) \vee \bigvee_{(dx, dy) \in M} P(r, \text{clamp}(x+dx, 0, n-1), \text{clamp}(y+dy, 0, m-1), t+1)
+   \]
+
+3. **No Two Robots in the Same Cell**:  
+   \[
+   \neg P(r, x, y, t) \vee \neg P(r', x, y, t)
+   \]
+
+4. **No Switching Positions**:  
+   \[
+   \neg P(r, x, y, t) \vee \neg P(r', x+dx, y+dy, t) \vee \neg P(r, x+dx, y+dy, t+1) \vee \neg P(r', x, y, t+1)
+   \]
+
+5. **Start and Goal Conditions**:  
+   - Encode initial positions: \(P(r, x_{\text{start}, r}, y_{\text{start}, r}, 0)\).  
+   - Encode goal conditions: \(P(r, x_{\text{goal}, r}, y_{\text{goal}, r}, T)\).
+
+---
+
+### **Next Steps**  
+This CNF formulation can be passed to a SAT solver like MiniSat or Gophersat. Would you like me to generate Python code to implement this encoding and solve it?
