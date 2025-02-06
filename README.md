@@ -8,7 +8,7 @@ This document outlines a robust approach to multi-robot path planning, formulate
 ## Problem Formulation
 
 ### Parameters
-- **Grid Dimensions:** The warehouse is represented as a two-dimensional grid of size $ n \times m $.
+- **Grid Dimensions:** The warehouse is represented as a two-dimensional grid of size $ n \times m $. We note $G = \{0,1,\dots,n\} \times \{0,1,\dots,m\}$ the grid of points.
 - **Robots:** A set of robots $ R $, each with a unique start position $ (x_{\text{start}_r}, y_{\text{start}_r}) $ and goal position $ (x_{\text{goal}_r}, y_{\text{goal}_r}) $.
 - **Time Horizon:** A fixed maximum time $ T $, representing the maximum number of time steps allowed for the robots to reach their destinations.
 
@@ -19,7 +19,7 @@ This document outlines a robust approach to multi-robot path planning, formulate
 1. **Movement Restricted to Free Cells:**
    Robots can only move to cells that are not obstacles.
    $$
-   \forall x, y \in O, \forall r \in R, \forall t \in [0, T]: O(x, y) \implies \neg P(r, x, y, t)
+   \forall x, y \in G, \forall r \in R, \forall t \in [0, T]: O(x, y) \implies \neg P(r, x, y, t)
    $$
 
 2. **Movement to Adjacent Cells Only:**
@@ -27,6 +27,11 @@ This document outlines a robust approach to multi-robot path planning, formulate
    $$
    \forall r \in R, \forall x, y, t: P(r, x, y, t) \implies \bigvee_{(\Delta x, \Delta y) \in M} P\big(r, \text{clamp}(x+\Delta x, 0, n-1), \text{clamp}(y+\Delta y, 0, m-1), \text{clamp}(t+1, 0, T)\big)
    $$
+   
+    * The `clamp(x, 0, n)` function restricts the value of `x` within the inclusive range from 0 to `n`.
+    * If `x` is less than 0, the function returns 0. If `x` is greater than `n`, the function returns `n`.
+    * Otherwise, it returns `x`.
+
    Here, $ M = \{(0, 1), (1, 0), (0, 0), (-1, 0), (0, -1)\} $ represents valid movements (up, down, left, right, or staying stationary).
 
 3. **Collision Avoidance:**
@@ -54,7 +59,7 @@ Below is a detailed breakdown of the formulas used in the SAT problem formulatio
 1. **Obstacle Avoidance:**
    Ensures that no robot can occupy a cell marked as an obstacle.
    $$
-   \forall x, y \in O, \forall r \in R, \forall t \in [0, T]: O(x, y) \implies \neg P(r, x, y, t)
+   \forall x, y \in G, \forall r \in R, \forall t \in [0, T]: O(x, y) \implies \neg P(r, x, y, t)
    $$
 
 2. **Adjacency Constraint:**
