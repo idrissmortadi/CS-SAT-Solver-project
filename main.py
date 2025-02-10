@@ -1,8 +1,10 @@
 from typing import Dict, List, Optional, Set
+
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import animation
+
 from warehouse_path_planner import Position, Robot, WarehousePathPlanner
 
 
@@ -110,7 +112,7 @@ def animate_solution(
     robots: List[Robot],
     obstacles: Set[Position],
     paths: Dict[int, List[Position]],
-    filename="robot_animation.gif",
+    filename="report/figures/robot_animation.gif",
 ):
     """Animates all robots moving along their paths and saves as GIF."""
     sns.set_theme(style="whitegrid")
@@ -325,7 +327,7 @@ def visualize_solution_grid(
         axes[j].axis("off")
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig("report/figures/warehouse_solution.png")
 
 
 if __name__ == "__main__":

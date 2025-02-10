@@ -1,6 +1,7 @@
 import itertools
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
+
 from pysat.formula import CNF
 from pysat.solvers import Glucose3
 
@@ -53,11 +54,9 @@ class WarehousePathPlanner:
             self.cnf.append([start_var])
 
             # Add "at most one position" constraints
-            positions = []
             for x in range(self.width):
                 for y in range(self.height):
                     var = self.create_variable(robot.id, x, y, 0)
-                    positions.append(var)
                     if x != robot.start.x or y != robot.start.y:
                         self.cnf.append([-var])  # Cannot be at any other position
 
