@@ -14,8 +14,6 @@
     commentstyle=\color{gray},
     stringstyle=\color{red},
     frame=single, % Adds a border around the code block
-    numbers=left, % Line numbers on the left
-    numberstyle=\tiny\color{gray},
     backgroundcolor=\color{lightgray!10}, % Light gray background
     tabsize=4,
     breaklines=true, % Wrap long lines
@@ -83,10 +81,15 @@ Robots can only move to cells that are not obstacles.
 \forall x,y \in G,\; \forall r \in R,\; \forall t \in [0,T]:\quad O(x,y) \implies \neg P(r,x,y,t)
 \]
 
+In zero order logic:
+\[
+    \bigwedge_{r,x,y,t} \quad \neg P(r,x,y,t) \lor \neg O(x,y)
+\]
+
 \subsubsection{Movement to Adjacent Cells Only}
 Robots can only move to adjacent cells or remain stationary at each time step.
 \[
-\forall r \in R,\; \forall x,y,t:\quad P(r,x,y,t) \implies \bigvee_{(\Delta x, \Delta y) \in M} P\Bigl(r,\text{clamp}(x+\Delta x,0,n-1),\text{clamp}(y+\Delta y,0,m-1),\text{clamp}(t+1,0,T)\Bigr)
+    \forall r \in R,\; \forall x,y,t:\quad P(r,x,y,t) \implies \bigvee_{(\Delta x, \Delta y) \in M} P\Bigl(r,\text{clamp}(x+\Delta x,0,n-1),\text{clamp}(y+\Delta y,0,m-1),\text{clamp}(t+1,0,T)\Bigr)
 \]
 \begin{itemize}
     \item The function \texttt{clamp(x, 0, n)} restricts the value of \texttt{x} within the inclusive range from $0$ to $n$. If \texttt{x} is less than $0$, the function returns $0$. If \texttt{x} is greater than $n$, the function returns $n$. Otherwise, it returns \texttt{x}.
@@ -97,11 +100,29 @@ Robots can only move to adjacent cells or remain stationary at each time step.
     represents valid movements (up, right, stay, left, down).
 \end{itemize}
 
+In zero order logic:
+\[
+    \bigwedge_{r,x,y,t} \Bigl[ \bigl(\bigvee_{dx,dy \in M} P(r,\text{clamp}(x+dx,0,n-1),\text{clamp}(y+dy,0,m-1),t+1)\bigr) \lor \neg P(r,x,y,t) \Bigr]
+\]
+
 \subsubsection{Collision Avoidance}
 Two robots cannot occupy the same cell at the same time.
 \[
 \forall r,r' \in R,\; r \neq r',\; \forall x,y,t:\quad P(r,x,y,t) \implies \neg P(r',x,y,t)
 \]
+
+In zero order logic:
+
+%%%
+%\[
+    %\bigwedge_{r,x,y,t} \bigwedge_{r' \neq r} \quad \neg P(r,x,y,t) \lor \neg %P(r',x,y,t)
+%\]
+%
+
+\[
+    \underset{r' \neq r}{\bigwedge_{r,r',x,y,t}} \quad \neg P(r,x,y,t) \lor \neg P(r',x,y,t)
+\]
+
 
 \subsubsection{Position Switching Prohibition}
 Two robots cannot swap positions between consecutive cell $(x,y)$ at time $t$ where robot $r$ is located.
@@ -112,6 +133,20 @@ time steps.
 \[
 P(r,x,y,t) \wedge P(r',x+\Delta x,y+\Delta y,t) \implies \neg \Bigl(P(r,x+\Delta x,y+\Delta y,t+1) \wedge P(r',x,y,t+1)\Bigr)
 \]
+
+The robots $r$ and $r'$ can stay next to each other, that's why we remove $(0,0)$ from $M$.
+
+In zero order logic:
+\begin{align*}
+\bigwedge_{r \neq r',x,y,t,(dx,dy)\in M \setminus \{(0,0)\}}
+& \quad \neg P(r,\text{clamp}(x+dx),\text{clamp}(y+dy),t+1) \\
+       & \quad \lor\, \neg P(r',x,y,t+1) \\
+       & \quad \lor\, \neg P(r,x,y,t) \\
+       & \quad \lor\, \neg P(r',\text{clamp}(x+dx),\text{clamp}(y+dy),t)
+\end{align*}
+
+%$$\underset{(dx,dy)\in M \setminus \{(0,0)\}{\bigwedge_{r \neq r',x,y,t}}} \neg %P(r,\text{clp}(x+dx),\text{clp}(y+dy),t+1) \lor \neg P(r',x,y,t+1) \lor \neg %P(r,x,y,t) \lor \neg P(r',\text{clp}(x+dx),\text{clp}(y+dy),t)$$
+
 \subsection{Objective}
 The goal is to compute a valid set of paths for all robots such that:
 \begin{itemize}
@@ -129,7 +164,28 @@ Consider a simple warehouse scenario with three robots, as shown in Figure \ref{
     \caption{A solution for a simple warehouse scenario with three robots. The blue robot starts at the top left and needs to reach the bottom right, the green robot starts at the bottom right and needs to reach the top left, and the red robot starts at the bottom left and needs to reach the top right. The time horizon is 10.}
     \label{fig:warehouse_solution}
 \end{figure}
+\newpage
+\subsection{Complex Scenario}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/randomized_warehouse.png}
+    \caption{A randomized warehouse scenario with 12 robots and obstacles. The robots have different starting and goal positions, and obstacles are placed in the warehouse.}
+    \label{fig:randomized_warehouse}
+\end{figure}
 
+\subsection{Commentary on the Results}
+\begin{itemize}
+    \item The SAT-based multi-robot path planning approach successfully computes collision-free paths for multiple robots in complex warehouse environments.
+    \item The solution ensures that each robot reaches its goal position within the specified time horizon while adhering to movement constraints and avoiding collisions.
+    \item The approach is not that scalable for obvious reasons (combinatorial number of variables...). Figure \ref{fig:complexity_plot} shows the time to compute a solution based on number of robots and grid size.
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/complexity_plot.png}
+        \caption{Time taken to compute solutions for different grid sizes ($8\times8$,...) and different number of robots}
+        \label{fig:complexity_plot}
+    \end{figure}
+    \item The solution can be further optimized to minimize the total path length or time taken by the robots, enhancing warehouse efficiency.
+\end{itemize}
 
 \section{Implementation Details}
 
@@ -372,7 +428,6 @@ def add_movement_constraints(self, robots: List[Robot]):
     \item Enforces that if a robot is at a given position at time $t$, then it moves to one of the valid positions at time $t+1$.
 \end{itemize}
 
-\newpage
 \subsubsection*{Adding Collision Avoidance Constraints}
 \begin{lstlisting}
 def add_collision_avoidance(self, robots: List[Robot]):

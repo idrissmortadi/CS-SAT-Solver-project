@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import animation
 
-from warehouse_path_planner import Position, Robot, WarehousePathPlanner
+from src.warehouse_path_planner import Position, Robot, WarehousePathPlanner
 
 
 def solve_warehouse_problem(
@@ -215,6 +215,7 @@ def visualize_solution_grid(
     robots: List[Robot],
     obstacles: Set[Position],
     paths: Dict[int, List[Position]],
+    figure_filename="report/figures/warehouse_solution.png",
 ):
     """Visualizes the solution in a grid of plots, one per robot."""
     sns.set_theme(style="whitegrid", font_scale=1.2)
@@ -327,43 +328,4 @@ def visualize_solution_grid(
         axes[j].axis("off")
 
     plt.tight_layout()
-    plt.savefig("report/figures/warehouse_solution.png")
-
-
-if __name__ == "__main__":
-    # Define the warehouse dimensions
-    width, height = 8, 8
-
-    # Define robots
-    robots = [
-        Robot(1, Position(0, 0), Position(7, 7)),
-        Robot(2, Position(7, 0), Position(0, 7)),
-        Robot(3, Position(0, 7), Position(7, 0)),
-        # Robot(4, Position(7, 7), Position(0, 0)),
-        # Robot(5, Position(3, 3), Position(5, 5)),
-        # Robot(6, Position(5, 5), Position(3, 3)),
-    ]
-
-    # Define obstacles
-    obstacles = {
-        Position(4, 0),
-        Position(4, 1),
-        # Position(4, 2),
-        Position(4, 3),
-        Position(4, 4),
-        Position(4, 5),
-        Position(4, 6),
-        Position(4, 7),
-    }
-
-    # Time horizon
-    time_horizon = 16
-
-    # Solve the problem
-    paths = solve_warehouse_problem(width, height, robots, obstacles, time_horizon)
-
-    if paths:
-        visualize_solution_grid(width, height, robots, obstacles, paths)
-        animate_solution(width, height, robots, obstacles, paths)
-    else:
-        print("No solution found.")
+    plt.savefig(figure_filename)
