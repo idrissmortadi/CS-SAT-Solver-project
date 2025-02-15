@@ -11,10 +11,10 @@ class Position:
     x: int
     y: int
 
-    def _hash_(self):
+    def __hash__(self):
         return hash((self.x, self.y))
 
-    def _eq_(self, other):
+    def __eq__(self, other):
         if not isinstance(other, Position):
             return NotImplemented
         return self.x == other.x and self.y == other.y
